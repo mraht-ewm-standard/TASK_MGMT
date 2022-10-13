@@ -26,10 +26,7 @@ CLASS ziot_cl_ci_check_todo_flags DEFINITION
   INHERITING FROM cl_ci_test_free_search
   CREATE PUBLIC .
 
-*"* public components of class CL_CI_TEST_SEARCH_ABAP_PATTERN
-*"* do not include other source files here!!!
   PUBLIC SECTION.
-
     METHODS constructor .
 
     METHODS get_message_text
@@ -38,20 +35,25 @@ CLASS ziot_cl_ci_check_todo_flags DEFINITION
         REDEFINITION .
 
   PROTECTED SECTION.
-*"* protected components of class CL_CI_TEST_FREE_SEARCH
-*"* do not include other source files here!!!
+    CLASS-METHODS get_stmt_checksum_do
+      IMPORTING
+        !p_ref_scan       TYPE REF TO cl_ci_scan
+        !p_position       TYPE i
+        !p_stmt_range     TYPE i DEFAULT 2
+        !p_version        TYPE i DEFAULT 1
+      CHANGING
+        VALUE(p_checksum) TYPE sci_crc64
+      EXCEPTIONS
+        error .
 
   PRIVATE SECTION.
-
-*"* private components of class CL_CI_TEST_FREE_SEARCH
-*"* do not include other source files here!!!
     CONSTANTS c_my_name TYPE sci_chk VALUE 'ZIOT_CL_CI_TEST_TODO_FLAGS' ##NO_TEXT.
 
 ENDCLASS.
 
 
 
-CLASS ZIOT_CL_CI_CHECK_TODO_FLAGS IMPLEMENTATION.
+CLASS ziot_cl_ci_check_todo_flags IMPLEMENTATION.
 
 
   METHOD constructor .
@@ -132,9 +134,16 @@ CLASS ZIOT_CL_CI_CHECK_TODO_FLAGS IMPLEMENTATION.
             cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING p_param = l_search_string
                                                            CHANGING  p_crc_value = l_checksum
                                                            EXCEPTIONS parameter_error = 0 ).
-            get_stmt_checksum( EXPORTING p_position = l_position p_version = 1
-                               CHANGING p_checksum = l_checksum
-                               EXCEPTIONS error = 1 ).
+
+            get_stmt_checksum_do(
+              EXPORTING
+                p_ref_scan   = ref_scan
+                p_position   = l_position
+              CHANGING
+                p_checksum   = l_checksum
+              EXCEPTIONS
+                error        = 1
+                OTHERS       = 2 ).
 
             ASSIGN ref_scan->tokens[ l_tokennr + 1 ] TO <ls_comment_token>.
 
@@ -164,4 +173,451 @@ CLASS ZIOT_CL_CI_CHECK_TODO_FLAGS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
+
+  METHOD get_stmt_checksum_do.
+
+    DATA:
+      l_found          TYPE abap_bool,
+      l_index          TYPE i,
+      l_count          TYPE i,
+      l_count_overflow TYPE i,
+      l_include        TYPE program,
+      l_struc          TYPE i,
+      l_stmnt_from     TYPE i,
+      l_stmnt_to       TYPE i.
+
+    CASE p_version.
+      WHEN 0.
+        READ TABLE p_ref_scan->statements INDEX p_position INTO p_ref_scan->statement_wa.
+        l_include = p_ref_scan->get_include( ).
+
+        IF sy-subrc <> 0.
+          RETURN.
+        ENDIF.
+
+        l_struc = p_ref_scan->statement_wa-struc.
+
+        IF l_struc = 0.
+          p_checksum-i1 = -1.
+          RETURN.
+        ENDIF.
+
+        DO.
+          READ TABLE p_ref_scan->structures INDEX l_struc ASSIGNING FIELD-SYMBOL(<l_structure>).
+          l_struc = <l_structure>-back.
+          CASE <l_structure>-type.
+
+            WHEN scan_struc_type-prog
+              OR scan_struc_type-routine
+              OR scan_struc_type-class.
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-stmnt_type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-stmnt_type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+              READ TABLE p_ref_scan->statements INDEX <l_structure>-stmnt_from INTO p_ref_scan->statement_wa.
+
+              READ TABLE p_ref_scan->tokens     INDEX p_ref_scan->statement_wa-from + 1        ASSIGNING FIELD-SYMBOL(<l_token>).
+              cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                          CHANGING  p_crc_value      = p_checksum
+                                                          EXCEPTIONS parameter_error = 1 ).
+              ASSERT sy-subrc = 0.
+
+              IF l_stmnt_from IS INITIAL AND l_stmnt_to IS INITIAL.
+                l_stmnt_from = <l_structure>-stmnt_from.
+                l_stmnt_to   = <l_structure>-stmnt_to.
+              ENDIF.
+
+              CASE <l_structure>-stmnt_type.
+                WHEN scan_struc_stmnt_type-method
+                  OR scan_struc_stmnt_type-public_section
+                  OR scan_struc_stmnt_type-protected_section
+                  OR scan_struc_stmnt_type-private_section.
+                  CONTINUE.
+                WHEN OTHERS.
+                  EXIT.
+              ENDCASE.
+
+            WHEN OTHERS.
+              CONTINUE.
+          ENDCASE.
+        ENDDO.
+
+        READ TABLE p_ref_scan->statements INDEX p_position  INTO p_ref_scan->statement_wa.
+
+        LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+          cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                          CHANGING  p_crc_value      = p_checksum
+                                                          EXCEPTIONS parameter_error = 1 ).
+          ASSERT sy-subrc = 0.
+        ENDLOOP.
+
+        l_index = p_position - 1.
+        l_count = p_stmt_range.
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index < l_stmnt_from. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          SUBTRACT 1 FROM l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to. CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+
+
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+
+        ENDDO.
+
+        l_index = p_position + 1.
+        l_count = p_stmt_range.
+        l_count_overflow = 0.
+
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index > l_stmnt_to. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          ADD 1 TO l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to.  CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+        ENDDO.
+
+        IF p_checksum-i1 = 0. p_checksum-i1 = -1. ENDIF.
+
+      WHEN 1.
+        READ TABLE p_ref_scan->statements INDEX p_position  INTO p_ref_scan->statement_wa.
+        l_include = p_ref_scan->get_include( ).
+
+        IF sy-subrc <> 0.
+          RETURN.
+        ENDIF.
+
+        l_struc = p_ref_scan->statement_wa-struc.
+
+        IF l_struc = 0.
+          p_checksum-i1 = -1.
+          RETURN.
+        ENDIF.
+
+        DO.
+          READ TABLE p_ref_scan->structures INDEX l_struc ASSIGNING <l_structure>.
+          l_struc = <l_structure>-back.
+
+
+          IF <l_structure>-type <> scan_struc_type-jump AND l_stmnt_from IS INITIAL AND l_stmnt_to IS INITIAL.
+            l_stmnt_from = <l_structure>-stmnt_from.
+            l_stmnt_to   = <l_structure>-stmnt_to.
+          ENDIF.
+
+
+          CASE <l_structure>-type.
+
+            WHEN scan_struc_type-prog
+              OR scan_struc_type-routine
+              OR scan_struc_type-class.
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-stmnt_type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+              READ TABLE p_ref_scan->statements INDEX <l_structure>-stmnt_from INTO p_ref_scan->statement_wa.
+              READ TABLE p_ref_scan->tokens     INDEX p_ref_scan->statement_wa-from + 1        ASSIGNING <l_token>.
+              cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                              CHANGING  p_crc_value      = p_checksum
+                                                              EXCEPTIONS parameter_error = 1 ).
+              ASSERT sy-subrc = 0.
+
+
+              CASE <l_structure>-stmnt_type.
+                WHEN scan_struc_stmnt_type-method
+                  OR scan_struc_stmnt_type-public_section
+                  OR scan_struc_stmnt_type-protected_section
+                  OR scan_struc_stmnt_type-private_section.
+                  CONTINUE.
+                WHEN OTHERS.
+                  EXIT.
+              ENDCASE.
+
+            WHEN OTHERS.
+              READ TABLE p_ref_scan->statements INDEX <l_structure>-stmnt_from INTO p_ref_scan->statement_wa.
+
+              LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+                cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                                CHANGING  p_crc_value      = p_checksum
+                                                                EXCEPTIONS parameter_error = 1 ).
+                ASSERT sy-subrc = 0.
+              ENDLOOP.
+
+              CASE <l_structure>-stmnt_type.
+                WHEN scan_struc_stmnt_type-if
+                  OR scan_struc_stmnt_type-case.
+                  READ TABLE p_ref_scan->statements INDEX <l_structure>-stmnt_from - 1 INTO p_ref_scan->statement_wa.
+                  LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+                    cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                                    CHANGING  p_crc_value      = p_checksum
+                                                                    EXCEPTIONS parameter_error = 1 ).
+                    ASSERT sy-subrc = 0.
+                  ENDLOOP.
+
+              ENDCASE.
+
+          ENDCASE.
+        ENDDO.
+
+        READ TABLE p_ref_scan->statements INDEX p_position INTO p_ref_scan->statement_wa.
+
+        LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+          cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                          CHANGING  p_crc_value      = p_checksum
+                                                          EXCEPTIONS parameter_error = 1 ).
+          ASSERT sy-subrc = 0.
+        ENDLOOP.
+
+        l_index = p_position - 1.
+        l_count = p_stmt_range.
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index < l_stmnt_from. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          SUBTRACT 1 FROM l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to. CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+
+        ENDDO.
+
+        l_index = p_position + 1.
+        l_count = p_stmt_range.
+        l_count_overflow = 0.
+
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index > l_stmnt_to. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          ADD 1 TO l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to.  CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+        ENDDO.
+
+        IF p_checksum-i1 = 0. p_checksum-i1 = -1. ENDIF.
+
+
+      WHEN 2.
+        READ TABLE p_ref_scan->statements INDEX p_position  INTO p_ref_scan->statement_wa.
+
+        ASSERT p_ref_scan->statement_wa-type <> 'P' AND p_ref_scan->statement_wa-type <> 'S' AND p_ref_scan->statement_wa-type <> 'G'.
+
+        l_include = p_ref_scan->get_include( ).
+
+        IF sy-subrc <> 0.
+          RETURN.
+        ENDIF.
+
+        l_struc = p_ref_scan->statement_wa-struc.
+
+        IF l_struc = 0.
+          p_checksum-i1 = -1.
+          RETURN.
+        ENDIF.
+
+        DO.
+          READ TABLE p_ref_scan->structures INDEX l_struc ASSIGNING <l_structure>.
+          l_struc = <l_structure>-back.
+
+
+          IF <l_structure>-type <> scan_struc_type-jump AND l_stmnt_from IS INITIAL AND l_stmnt_to IS INITIAL.
+            l_stmnt_from = <l_structure>-stmnt_from.
+            l_stmnt_to   = <l_structure>-stmnt_to.
+          ENDIF.
+
+
+          CASE <l_structure>-type.
+
+            WHEN scan_struc_type-prog
+              OR scan_struc_type-routine
+              OR scan_struc_type-class.
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+              cl_ci_provide_checksum=>gen_chksum_from_chars( EXPORTING  p_param         = <l_structure>-stmnt_type
+                                                             CHANGING   p_crc_value     = p_checksum
+                                                             EXCEPTIONS parameter_error = 0 ).
+
+
+              l_found = abap_false.
+
+              LOOP AT p_ref_scan->statements FROM <l_structure>-stmnt_from TO <l_structure>-stmnt_to INTO p_ref_scan->statement_wa.
+
+                CHECK p_ref_scan->statement_wa-type <> 'P' AND p_ref_scan->statement_wa-type <> 'S' AND p_ref_scan->statement_wa-type <> 'G'.
+
+                READ TABLE p_ref_scan->tokens     INDEX p_ref_scan->statement_wa-from + 1        ASSIGNING <l_token>.
+                cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                             CHANGING  p_crc_value      = p_checksum
+                                                             EXCEPTIONS parameter_error = 1 ).
+                ASSERT sy-subrc = 0.
+
+                l_found = abap_true.
+
+                EXIT.
+              ENDLOOP.
+
+              ASSERT l_found = abap_true.
+
+              CASE <l_structure>-stmnt_type.
+                WHEN scan_struc_stmnt_type-method
+                  OR scan_struc_stmnt_type-public_section
+                  OR scan_struc_stmnt_type-protected_section
+                  OR scan_struc_stmnt_type-private_section.
+                  CONTINUE.
+                WHEN OTHERS.
+                  EXIT.
+              ENDCASE.
+
+            WHEN OTHERS.
+
+              l_found = abap_false.
+
+              LOOP AT p_ref_scan->statements FROM <l_structure>-stmnt_from TO <l_structure>-stmnt_to INTO p_ref_scan->statement_wa.
+
+                CHECK p_ref_scan->statement_wa-type <> 'P' AND p_ref_scan->statement_wa-type <> 'S' AND p_ref_scan->statement_wa-type <> 'G'.
+
+                LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+                  cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                                  CHANGING  p_crc_value      = p_checksum
+                                                                  EXCEPTIONS parameter_error = 1 ).
+                  ASSERT sy-subrc = 0.
+                ENDLOOP.
+                l_found = abap_true.
+                EXIT.
+              ENDLOOP.
+
+              ASSERT l_found = abap_true.
+
+              CASE <l_structure>-stmnt_type.
+                WHEN scan_struc_stmnt_type-if
+                  OR scan_struc_stmnt_type-case.
+                  READ TABLE p_ref_scan->statements INDEX <l_structure>-stmnt_from - 1 INTO p_ref_scan->statement_wa.
+                  CHECK p_ref_scan->statement_wa-type <> 'P' AND p_ref_scan->statement_wa-type <> 'S' AND p_ref_scan->statement_wa-type <> 'G'.
+
+                  LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+                    cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                                    CHANGING  p_crc_value      = p_checksum
+                                                                    EXCEPTIONS parameter_error = 1 ).
+                    ASSERT sy-subrc = 0.
+                  ENDLOOP.
+              ENDCASE.
+
+
+          ENDCASE.
+        ENDDO.
+
+        READ TABLE p_ref_scan->statements INDEX p_position INTO p_ref_scan->statement_wa.
+
+        ASSERT p_ref_scan->statement_wa-type <> 'P' AND p_ref_scan->statement_wa-type <> 'S' AND p_ref_scan->statement_wa-type <> 'G'.
+
+        LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+          cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                          CHANGING  p_crc_value      = p_checksum
+                                                          EXCEPTIONS parameter_error = 1 ).
+          ASSERT sy-subrc = 0.
+        ENDLOOP.
+
+        l_index = p_position - 1.
+        l_count = p_stmt_range.
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index < l_stmnt_from. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          SUBTRACT 1 FROM l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to. CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+
+        ENDDO.
+
+        l_index = p_position + 1.
+        l_count = p_stmt_range.
+        l_count_overflow = 0.
+
+        DO.
+          IF l_count = 0. EXIT. ENDIF.
+          IF l_index > l_stmnt_to. EXIT. ENDIF.
+          READ TABLE p_ref_scan->statements INDEX l_index INTO p_ref_scan->statement_wa.
+          IF sy-subrc <> 0. EXIT. ENDIF.
+          ADD 1 TO l_index.
+          ADD 1 TO l_count_overflow.
+          IF l_count_overflow > 10000. RAISE error. ENDIF.
+          IF p_ref_scan->statement_wa-type = 'P' OR p_ref_scan->statement_wa-type = 'S' OR p_ref_scan->statement_wa-type = 'G' OR p_ref_scan->statement_wa-from > p_ref_scan->statement_wa-to.  CONTINUE. ENDIF.
+          IF p_ref_scan->get_include( ) <> l_include. EXIT. ENDIF.
+          LOOP AT p_ref_scan->tokens FROM p_ref_scan->statement_wa-from TO p_ref_scan->statement_wa-to ASSIGNING <l_token>.
+            cl_ci_provide_checksum=>gen_chksum_from_string( EXPORTING p_param          = <l_token>-str
+                                                            CHANGING  p_crc_value      = p_checksum
+                                                            EXCEPTIONS parameter_error = 1 ).
+
+            ASSERT sy-subrc = 0.
+          ENDLOOP.
+          IF p_ref_scan->statement_wa-trow <> 0. SUBTRACT 1 FROM l_count. ENDIF.
+        ENDDO.
+
+        IF p_checksum-i1 = 0. p_checksum-i1 = -1. ENDIF.
+
+    ENDCASE.
+
+  ENDMETHOD.
+
 ENDCLASS.

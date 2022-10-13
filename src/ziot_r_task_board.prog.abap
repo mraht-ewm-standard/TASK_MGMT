@@ -23,8 +23,8 @@ CLASS lcl_appl DEFINITION FINAL.
     TYPES: BEGIN OF s_open_task,
              editor_link TYPE icon_d.
              INCLUDE     TYPE ziot_cl_package=>s_dev_obj.
-    TYPES: END OF s_open_task,
-    t_open_task TYPE TABLE OF s_open_task.
+           TYPES: END OF s_open_task,
+           t_open_task TYPE TABLE OF s_open_task.
 
     CONSTANTS: mc_report_name     TYPE progname VALUE 'ZIOT_R_TASK_BOARD',
                mc_test_class_name TYPE clasname VALUE 'ZIOT_CL_CI_CHECK_TODO_FLAGS'.
@@ -63,10 +63,10 @@ CLASS lcl_event_handler DEFINITION FINAL.
 
   PUBLIC SECTION.
     CLASS-METHODS on_refresh
-      FOR EVENT added_function OF cl_salv_events
+                FOR EVENT added_function OF cl_salv_events
       IMPORTING e_salv_function.
     CLASS-METHODS on_hotspot_click
-      FOR EVENT link_click OF cl_salv_events_table
+        FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         row
         column.
@@ -315,7 +315,8 @@ CLASS lcl_appl IMPLEMENTATION.
       EXCEPTIONS
         OTHERS    = 0 ).
 
-    ASSIGN lo_test_ref->list[ 1 ] TO FIELD-SYMBOL(<lo_test_class>).
+    DATA(lt_list) = lo_test_ref->give_list( ).
+    ASSIGN lt_list[ 1 ] TO FIELD-SYMBOL(<lo_test_class>).
     IF <lo_test_class> IS NOT ASSIGNED.
       MESSAGE TEXT-906 TYPE 'E'.
     ENDIF.
@@ -379,7 +380,7 @@ CLASS lcl_event_handler IMPLEMENTATION.
 
     CALL FUNCTION 'POPUP_GET_VALUES'
       EXPORTING
-        popup_title  = text-010
+        popup_title  = TEXT-010
         start_column = '2'
         start_row    = '2'
       TABLES
