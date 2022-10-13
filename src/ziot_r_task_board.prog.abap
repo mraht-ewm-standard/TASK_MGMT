@@ -16,6 +16,7 @@ DATA: ok_code TYPE sy-ucomm.
 " - Show tasks type in separate table column
 " - Show tasks description in separate table column
 " - Read task flags from check variant
+" - Show progress during code search
 
 CLASS lcl_appl DEFINITION FINAL.
 
@@ -125,8 +126,7 @@ CLASS lcl_appl IMPLEMENTATION.
                   JOIN tdevct ON tdevc~devclass = tdevct~devclass
       FIELDS @abap_true
       WHERE tdevc~devclass EQ @mv_main_package
-        AND tdevct~spras   EQ @sy-langu
-      INTO @DATA(lv_exists).
+       INTO @DATA(lv_exists).
 
     IF lv_exists EQ abap_false.
       DATA(lv_msg) = CONV string( TEXT-904 ).
