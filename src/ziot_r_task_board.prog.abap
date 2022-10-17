@@ -3,7 +3,7 @@
 *&---------------------------------------------------------------------*
 *& Open tasks: Use '##TODO. " [author] <task description>' within source
 *&             code to create a new open task. E.g.:
-*&             ##TODO. " [MRaht] Implement exception handling
+*&             ##TODO. " [JDoe] Implement exception handling
 *&             You can also use ##NEW, ##OPT or ##FIX. Configurable via
 *&             source code and TCode SCI. See also package ZIOT_CI_SCAN.
 *&---------------------------------------------------------------------*
@@ -15,8 +15,6 @@ DATA: ok_code TYPE sy-ucomm.
 " - Show author in separate table column
 " - Show tasks type in separate table column
 " - Show tasks description in separate table column
-" - Read task flags from check variant
-" - Show progress during code search
 
 CLASS lcl_appl DEFINITION FINAL.
 
