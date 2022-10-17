@@ -7,6 +7,14 @@
    <VERSION>17.10.2022.001-rc</VERSION>
    <REPOSITORY_TYPE>abapGit</REPOSITORY_TYPE>
    <GIT_URL>https://github.com/mraht-ewm-standard/TASK_MGMT.git</GIT_URL>
+   <DEPENDENCIES>
+    <item>
+     <GROUP_ID>c-a-s.de</GROUP_ID>
+     <ARTIFACT_ID>ewm-dev-basis</ARTIFACT_ID>
+     <GIT_URL>https://github.com/mraht-ewm-standard/DEV_BASIS.git</GIT_URL>
+     <TARGET_PACKAGE>ZIOT_DEV_BASIS</TARGET_PACKAGE>
+    </item>
+   </DEPENDENCIES>
   </DATA>
  </asx:values>
 </asx:abap>

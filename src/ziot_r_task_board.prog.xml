@@ -284,6 +284,18 @@
     </item>
     <item>
      <ID>I</ID>
+     <KEY>105</KEY>
+     <ENTRY>Task type</ENTRY>
+     <LENGTH>19</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>106</KEY>
+     <ENTRY>Assignee</ENTRY>
+     <LENGTH>18</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
      <KEY>114</KEY>
      <ENTRY>ADT?</ENTRY>
      <LENGTH>10</LENGTH>
@@ -441,6 +453,18 @@
        <KEY>104</KEY>
        <ENTRY>Editor (SE80/ADT)?</ENTRY>
        <LENGTH>20</LENGTH>
+      </item>
+      <item>
+       <ID>I</ID>
+       <KEY>105</KEY>
+       <ENTRY>Aufgabentyp</ENTRY>
+       <LENGTH>19</LENGTH>
+      </item>
+      <item>
+       <ID>I</ID>
+       <KEY>106</KEY>
+       <ENTRY>Bearbeiter</ENTRY>
+       <LENGTH>18</LENGTH>
       </item>
       <item>
        <ID>I</ID>
