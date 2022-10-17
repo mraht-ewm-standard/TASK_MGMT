@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+ <asx:values>
+  <DATA>
+   <GROUP_ID>c-a-s.de</GROUP_ID>
+   <ARTIFACT_ID>ewm-task-mgmt</ARTIFACT_ID>
+   <VERSION>17.10.2022.001-rc</VERSION>
+   <REPOSITORY_TYPE>abapGit</REPOSITORY_TYPE>
+   <GIT_URL>https://github.com/mraht-ewm-standard/TASK_MGMT.git</GIT_URL>
+  </DATA>
+ </asx:values>
+</asx:abap>

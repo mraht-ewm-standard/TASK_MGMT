@@ -24,11 +24,11 @@ CLASS lcl_appl DEFINITION FINAL.
     TYPES: BEGIN OF s_open_task,
              editor_link TYPE icon_d.
              INCLUDE     TYPE ziot_cl_package=>s_dev_obj.
-           TYPES: END OF s_open_task,
-           t_open_task TYPE TABLE OF s_open_task.
+    TYPES: END OF s_open_task,
+    t_open_task TYPE TABLE OF s_open_task.
 
     CONSTANTS: mc_report_name     TYPE progname VALUE 'ZIOT_R_TASK_BOARD',
-               mc_test_class_name TYPE clasname VALUE 'ZIOT_CL_CI_CHECK_TODO_FLAGS'.
+               mc_test_class_name TYPE clasname VALUE 'ZIOT_CL_CI_TEST_TODO_FLAGS'.
 
     CONSTANTS: mc_dflt_check_variant TYPE sci_chkv VALUE 'DEFAULT'.
 
@@ -64,10 +64,10 @@ CLASS lcl_event_handler DEFINITION FINAL.
 
   PUBLIC SECTION.
     CLASS-METHODS on_refresh
-                FOR EVENT added_function OF cl_salv_events
+      FOR EVENT added_function OF cl_salv_events
       IMPORTING e_salv_function.
     CLASS-METHODS on_hotspot_click
-        FOR EVENT link_click OF cl_salv_events_table
+      FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         row
         column.
@@ -126,7 +126,7 @@ CLASS lcl_appl IMPLEMENTATION.
                   JOIN tdevct ON tdevc~devclass = tdevct~devclass
       FIELDS @abap_true
       WHERE tdevc~devclass EQ @mv_main_package
-       INTO @DATA(lv_exists).
+      INTO @DATA(lv_exists).
 
     IF lv_exists EQ abap_false.
       DATA(lv_msg) = CONV string( TEXT-904 ).
