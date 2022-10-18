@@ -12,7 +12,7 @@
      <GROUP_ID>c-a-s.de</GROUP_ID>
      <ARTIFACT_ID>ewm-dev-basis</ARTIFACT_ID>
      <GIT_URL>https://github.com/mraht-ewm-standard/DEV_BASIS.git</GIT_URL>
-     <TARGET_PACKAGE>ZIOT_DEV_BASIS</TARGET_PACKAGE>
+     <TARGET_PACKAGE>ZIAL_DEV_BASIS</TARGET_PACKAGE>
     </item>
    </DEPENDENCIES>
   </DATA>
