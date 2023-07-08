@@ -38,7 +38,7 @@ CLASS lcl_appl DEFINITION FINAL.
 
     CLASS-DATA: mo_alv_table    TYPE REF TO cl_salv_table,
                 mv_main_package TYPE devclass,
-                mt_packages     TYPE zial_cl_package=>t_package,
+                mt_packages     TYPE zial_tt_package,
                 mt_open_tasks   TYPE t_open_task.
 
     CLASS-METHODS execute.
@@ -61,7 +61,7 @@ CLASS lcl_appl DEFINITION FINAL.
     CLASS-METHODS scan
       IMPORTING
         it_r_search_str  TYPE rseloption
-        it_dev_objects   TYPE zial_cl_package=>t_tadir
+        it_dev_objects   TYPE zial_tt_tadir
       RETURNING
         VALUE(rt_result) TYPE t_dev_obj.
     CLASS-METHODS search
@@ -133,8 +133,8 @@ CLASS lcl_appl IMPLEMENTATION.
         FIELDS devclass
         WHERE obj_name EQ @mc_report_name
         INTO @DATA(lv_devclass).
-      DATA(lt_packages) = zial_cl_package=>det_packages( iv_package        = lv_devclass
-                                                         iv_hierarchy_mode = zial_cl_package=>mc_hierarchy_mode-parents ).
+      DATA(lt_packages) = zial_cl_devobj=>det_packages( iv_package        = lv_devclass
+                                                        iv_hierarchy_mode = zial_cl_devobj=>mc_hierarchy_mode-parents ).
       mv_main_package = VALUE #( lt_packages[ parent = space ]-package OPTIONAL ).
     ENDIF.
 
@@ -157,9 +157,9 @@ CLASS lcl_appl IMPLEMENTATION.
 
     CHECK mv_main_package CN ' _0'.
 
-    mt_packages = CORRESPONDING #( zial_cl_package=>det_packages( iv_package        = mv_main_package
-                                                                  iv_hierarchy_mode = zial_cl_package=>mc_hierarchy_mode-children
-                                                                  iv_incl_package   = abap_true ) ).
+    mt_packages = CORRESPONDING #( zial_cl_devobj=>det_packages( iv_package        = mv_main_package
+                                                                 iv_hierarchy_mode = zial_cl_devobj=>mc_hierarchy_mode-children
+                                                                 iv_incl_package   = abap_true ) ).
 
   ENDMETHOD.
 
@@ -421,7 +421,7 @@ CLASS lcl_appl IMPLEMENTATION.
     DATA(lt_r_package) = it_r_package.
     IF iv_incl_subpckg EQ abap_true.
       LOOP AT it_r_package ASSIGNING FIELD-SYMBOL(<ls_r_package>).
-        DATA(lt_packages) = zial_cl_package=>det_packages( iv_package = CONV #( <ls_r_package>-low ) ).
+        DATA(lt_packages) = zial_cl_devobj=>det_packages( iv_package = CONV #( <ls_r_package>-low ) ).
         APPEND LINES OF VALUE rseloption( FOR <s_package> IN lt_packages
                                             ( sign   = 'I'
                                               option = 'EQ'
@@ -429,15 +429,15 @@ CLASS lcl_appl IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
-    DATA(lt_r_obj_type) = VALUE rseloption( ( sign = 'I' option = 'EQ' low = zial_cl_package=>mc_dev_obj_type-clas )
-                                            ( sign = 'I' option = 'EQ' low = zial_cl_package=>mc_dev_obj_type-fugr )
-                                            ( sign = 'I' option = 'EQ' low = zial_cl_package=>mc_dev_obj_type-intf )
-                                            ( sign = 'I' option = 'EQ' low = zial_cl_package=>mc_dev_obj_type-prog ) ).
-    DATA(lt_dev_objects) = zial_cl_package=>get_dev_objects( iv_with_includes = abap_true
-                                                             iv_excl_base_obj = abap_true
-                                                             it_r_package     = lt_r_package
-                                                             it_r_obj_type    = lt_r_obj_type
-                                                             it_r_obj_name    = it_r_obj_name ).
+    DATA(lt_r_obj_type) = VALUE rseloption( ( sign = 'I' option = 'EQ' low = zial_cl_devobj=>mc_dev_obj_type-clas )
+                                            ( sign = 'I' option = 'EQ' low = zial_cl_devobj=>mc_dev_obj_type-fugr )
+                                            ( sign = 'I' option = 'EQ' low = zial_cl_devobj=>mc_dev_obj_type-intf )
+                                            ( sign = 'I' option = 'EQ' low = zial_cl_devobj=>mc_dev_obj_type-prog ) ).
+    DATA(lt_dev_objects) = zial_cl_devobj=>det_by_package( iv_with_includes = abap_true
+                                                           iv_excl_base_obj = abap_true
+                                                           it_r_package     = lt_r_package
+                                                           it_r_obj_type    = lt_r_obj_type
+                                                           it_r_obj_name    = it_r_obj_name ).
 
     rt_result = scan( it_dev_objects  = lt_dev_objects
                       it_r_search_str = it_r_search_str ).
