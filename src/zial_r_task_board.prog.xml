@@ -56,12 +56,16 @@
       <RPY_DYFLOW>
        <LINE>  MODULE pai_0100.</LINE>
       </RPY_DYFLOW>
+      <RPY_DYFLOW>
+       <LINE>  MODULE exit AT EXIT-COMMAND.</LINE>
+      </RPY_DYFLOW>
      </FLOW_LOGIC>
     </item>
    </DYNPROS>
    <CUA>
     <ADM>
      <ACTCODE>000002</ACTCODE>
+     <MENCODE>000001</MENCODE>
      <PFKCODE>000002</PFKCODE>
     </ADM>
     <STA>
@@ -87,6 +91,7 @@
      <RSMPE_FUNT>
       <CODE>EXIT</CODE>
       <TEXTNO>001</TEXTNO>
+      <TYPE>E</TYPE>
       <TEXT_TYPE>S</TEXT_TYPE>
       <FUN_TEXT>Exit</FUN_TEXT>
      </RSMPE_FUNT>
@@ -100,6 +105,29 @@
       <INFO_TEXT>Refresh data</INFO_TEXT>
      </RSMPE_FUNT>
     </FUN>
+    <MEN>
+     <RSMPE_MEN>
+      <CODE>000001</CODE>
+      <NO>01</NO>
+      <REF_TYPE>F</REF_TYPE>
+      <REF_CODE>EXIT</REF_CODE>
+      <REF_NO>001</REF_NO>
+     </RSMPE_MEN>
+    </MEN>
+    <MTX>
+     <RSMPE_MNLT>
+      <CODE>000001</CODE>
+      <TEXT_TYPE>S</TEXT_TYPE>
+      <TEXT>Goto</TEXT>
+     </RSMPE_MNLT>
+    </MTX>
+    <ACT>
+     <RSMPE_ACT>
+      <CODE>000002</CODE>
+      <NO>01</NO>
+      <MENUCODE>000001</MENUCODE>
+     </RSMPE_ACT>
+    </ACT>
     <BUT>
      <RSMPE_BUT>
       <PFK_CODE>000001</PFK_CODE>
@@ -299,6 +327,12 @@
      <KEY>114</KEY>
      <ENTRY>ADT?</ENTRY>
      <LENGTH>10</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>115</KEY>
+     <ENTRY>Processing</ENTRY>
+     <LENGTH>20</LENGTH>
     </item>
     <item>
      <ID>I</ID>
