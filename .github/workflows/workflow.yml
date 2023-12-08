@@ -1,6 +1,8 @@
-name: "Run TODO flags to GitHub issues"
+name: "main"
 on: 
     push:
+        branches:
+            - main
     workflow_dispatch:
         inputs:
             MANUAL_COMMIT_REF:
@@ -14,10 +16,15 @@ jobs:
         runs-on: "ubuntu-latest"
         steps:
             - uses: "actions/checkout@v3"
-            - name: "TODO flags to GitHub issues"
+            - name: "todo-to-issue"
               uses: "alstr/todo-to-issue-action@v4"
               with:
                   CLOSE_ISSUES: true
                   AUTO_P: true
                   AUTO_ASSIGN: true
                   IDENTIFIERS: '[{"name": "TODO", "labels": ["todo"]}, {"name": "NEW", "labels": ["new"]}, {"name": "FIX", "labels": ["bug"]}, {"name": "OPT", "labels": ["opt"]}]'
+            - name: "abaplint"
+              uses: "abaplint/actions-abaplint@main"
+              if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
