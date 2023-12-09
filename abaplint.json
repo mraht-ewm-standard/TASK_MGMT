@@ -129,6 +129,9 @@
       "forbidden_pseudo_and_pragma": {
         "ignoreGlobalClassDefinition": true,
         "ignoreGlobalInterface": true,
+        "exclude": [
+          "^.*apack"
+        ],
         "pragmas": [
           "##NO_TEXT"
         ],
