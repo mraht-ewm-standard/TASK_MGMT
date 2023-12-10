@@ -11,6 +11,9 @@
       }
     ],
     "global": {
+      "exclude": [
+        "^.*apack"
+      ],
       "files": "/{test/src,src}/**/*.*",
       "skipGeneratedFunctionGroups": true,
       "skipGeneratedGatewayClasses": true,
@@ -56,11 +59,11 @@
       "check_ddic": true,
       "check_include": true,
       "check_subrc": false,
-      "check_syntax": true,
+      "check_syntax": false,
       "check_text_elements": true,
       "check_transformation_exists": true,
       "class_attribute_names": {
-        "constants": "^C_.*$",
+        "constants": "^MC_.*$",
         "exclude": [
           "/json/"
         ],
@@ -68,7 +71,7 @@
         "ignoreInterfaces": false,
         "ignoreLocal": false,
         "instance": "^M._.*$",
-        "statics": "^G._.*$"
+        "statics": "^M._.*$"
       },
       "classic_exceptions_overlap": true,
       "cloud_types": true,
@@ -94,12 +97,13 @@
           "/json/"
         ]
       },
-      "description_empty": {
-        "exclude": [
-          "/test/"
-        ]
+      "description_empty": false,
+      "double_space": {
+        "keywords": false,
+        "startParen": true,
+        "endParen": true,
+        "afterColon": true
       },
-      "double_space": true,
       "downport": false,
       "dynpro_checks": false,
       "easy_to_find_messages": {
@@ -122,16 +126,16 @@
         "when": false,
         "while": true
       },
-      "exit_or_check": true,
+      "exit_or_check": {
+        "allowExit": false,
+        "allowCheck": true
+      },
       "expand_macros": true,
       "exporting": true,
       "forbidden_identifier": true,
       "forbidden_pseudo_and_pragma": {
         "ignoreGlobalClassDefinition": true,
         "ignoreGlobalInterface": true,
-        "exclude": [
-          "^.*apack"
-        ],
         "pragmas": [
           "##NO_TEXT"
         ],
@@ -292,7 +296,7 @@
       },
       "no_chained_assignment": true,
       "no_external_form_calls": false,
-      "no_inline_in_optional_branches": true,
+      "no_inline_in_optional_branches": false,
       "no_public_attributes": false,
       "no_yoda_conditions": false,
       "nrob_consistency": true,
@@ -332,7 +336,7 @@
       "prefer_inline": false,
       "prefer_is_not": false,
       "prefer_pragmas": false,
-      "prefer_raise_exception_new": true,
+      "prefer_raise_exception_new": false,
       "prefer_returning_to_exporting": {
         "exclude": [
           "/json/"
@@ -342,24 +346,18 @@
       "preferred_compare_operator": {
         "badOperators": [
           "><",
-          "EQ",
-          "GE",
-          "GT",
-          "LE",
-          "LT",
-          "NE"
+          "=",
+          ">=",
+          ">",
+          "<=",
+          "<",
+          "<>"
         ]
       },
       "prefix_is_current_class": true,
       "reduce_string_templates": true,
       "release_idoc": true,
-      "remove_descriptions": {
-        "exclude": [
-          "/json/"
-        ],
-        "ignoreExceptions": false,
-        "ignoreWorkflow": false
-      },
+      "remove_descriptions": false,
       "rfc_error_handling": false,
       "select_add_order_by": {
         "skipForAllEntries": true
@@ -402,7 +400,7 @@
         "pattern": "^TY_.+$"
       },
       "uncaught_exception": true,
-      "unknown_types": true,
+      "unknown_types": false,
       "unnecessary_chaining": false,
       "unnecessary_pragma": {
         "allowNoTextGlobal": true
