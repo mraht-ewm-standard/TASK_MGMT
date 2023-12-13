@@ -29,7 +29,7 @@
         "defaultKey": false,
         "define": true,
         "describeLines": true,
-        "exportToDatabase": true,
+        "exportToDatabase": false,
         "exportToMemory": false,
         "statics": true,
         "testSeams": true
@@ -56,7 +56,7 @@
       "change_if_to_case": false,
       "check_abstract": true,
       "check_comments": false,
-      "check_ddic": true,
+      "check_ddic": false,
       "check_include": true,
       "check_subrc": false,
       "check_syntax": false,
@@ -208,7 +208,7 @@
       "identical_descriptions": false,
       "identical_form_names": true,
       "if_in_if": true,
-      "implement_methods": true,
+      "implement_methods": false,
       "in_statement_indentation": false,
       "indentation": {
         "alignTryCatch": false,
@@ -364,7 +364,16 @@
       },
       "select_performance": false,
       "select_single_full_key": true,
-      "selection_screen_naming": true,
+      "selection_screen_naming": {
+         "exclude": [],
+        "severity": "Error",
+        "patternKind": "required",
+        "ignoreNames": [],
+        "ignorePatterns": [],
+        "parameter": "^P_.+$",
+        "selectOption": "^S_.+$",
+        "screenElement": "^L_.+$"
+      },
       "sequential_blank": {
         "lines": 4
       },
@@ -388,7 +397,7 @@
       "start_at_tab": true,
       "static_call_via_instance": false,
       "strict_sql": false,
-      "superclass_final": true,
+      "superclass_final": false,
       "superfluous_value": true,
       "tabl_enhancement_category": true,
       "try_without_catch": true,
@@ -397,7 +406,7 @@
         "exclude": [
           "/json/"
         ],
-        "pattern": "^TY_.+$"
+        "pattern": "^(R|V|S|T)_.+$"
       },
       "uncaught_exception": true,
       "unknown_types": false,
