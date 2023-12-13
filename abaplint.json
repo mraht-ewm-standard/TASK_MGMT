@@ -211,17 +211,25 @@
       "implement_methods": false,
       "in_statement_indentation": false,
       "indentation": {
-        "alignTryCatch": false,
-        "globalClassSkipFirst": false,
+        "exclude": [
+          "fugr",
+          "sel.prog"
+        ],
+        "severity": "Error",
         "ignoreExceptions": true,
+        "alignTryCatch": false,
+        "selectionScreenBlockIndentation": false,
+        "globalClassSkipFirst": false,
         "ignoreGlobalClassDefinition": false,
-        "ignoreGlobalInterface": false,
-        "selectionScreenBlockIndentation": false
+        "ignoreGlobalInterface": false
       },
       "inline_data_old_versions": true,
       "intf_referencing_clas": false,
       "keep_single_parameter_on_one_line": true,
       "keyword_case": {
+        "exclude": [
+          "fugr"
+        ],
         "ignoreExceptions": true,
         "ignoreFunctionModuleName": false,
         "ignoreGlobalClassBoundaries": false,
