@@ -414,7 +414,7 @@
         "exclude": [
           "/json/"
         ],
-        "pattern": "^(R|V|S|T)_.+$"
+        "pattern": "^(R|V|S|TT)_.+$"
       },
       "uncaught_exception": true,
       "unknown_types": false,
