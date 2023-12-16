@@ -20,49 +20,48 @@ CLASS lcl_application DEFINITION FINAL.
              editor_link TYPE icon_d.
              INCLUDE     TYPE s_dev_obj.
     TYPES: END OF s_open_task,
-    t_open_task TYPE TABLE OF s_open_task.
+           t_open_task TYPE TABLE OF s_open_task.
 
-    CONSTANTS: mc_report_name     TYPE progname VALUE 'ZIAL_R_TASK_BOARD',
-               mc_test_class_name TYPE clasname VALUE 'ZIAL_CL_CI_TEST_TODO_FLAGS'.
+    CONSTANTS mc_report_name        TYPE progname VALUE 'ZIAL_R_TASK_BOARD'.
+    CONSTANTS mc_test_class_name    TYPE clasname VALUE 'ZIAL_CL_CI_TEST_TODO_FLAGS'.
 
-    CONSTANTS: mc_dflt_check_variant TYPE sci_chkv VALUE 'DEFAULT'.
+    CONSTANTS mc_dflt_check_variant TYPE sci_chkv VALUE 'DEFAULT'.
 
-    CLASS-DATA: mo_alv_table    TYPE REF TO cl_salv_table,
-                mv_main_package TYPE devclass,
-                mt_packages     TYPE zial_tt_package,
-                mt_open_tasks   TYPE t_open_task.
+    CLASS-DATA mo_alv_table    TYPE REF TO cl_salv_table.
+    CLASS-DATA mv_main_package TYPE devclass.
+    CLASS-DATA mt_packages     TYPE zial_tt_package.
+    CLASS-DATA mt_open_tasks   TYPE t_open_task.
 
     CLASS-METHODS execute.
+
     CLASS-METHODS refresh
-      IMPORTING
-        iv_main_package TYPE devclass OPTIONAL.
+      IMPORTING iv_main_package TYPE devclass OPTIONAL.
 
   PRIVATE SECTION.
-    CLASS-DATA: mt_todo_flags TYPE sci_srchstr.
+    CLASS-DATA mt_todo_flags TYPE sci_srchstr.
 
     CLASS-METHODS prepare.
-    CLASS-METHODS  set_main_package.
-    CLASS-METHODS  det_sub_packages.
-    CLASS-METHODS  det_open_tasks.
-    CLASS-METHODS  display_alv.
+    CLASS-METHODS set_main_package.
+    CLASS-METHODS det_sub_packages.
+    CLASS-METHODS det_open_tasks.
+    CLASS-METHODS display_alv.
+
     CLASS-METHODS prepare_alv
-      RAISING
-        cx_static_check.
+      RAISING cx_static_check.
+
     CLASS-METHODS det_todo_flags.
+
     CLASS-METHODS scan
-      IMPORTING
-        it_r_search_str  TYPE rseloption
-        it_dev_objects   TYPE zial_tt_tadir
-      RETURNING
-        VALUE(rt_result) TYPE t_dev_obj.
+      IMPORTING it_r_search_str  TYPE rseloption
+                it_dev_objects   TYPE zial_tt_tadir
+      RETURNING VALUE(rt_result) TYPE t_dev_obj.
+
     CLASS-METHODS search
-      IMPORTING
-        iv_incl_subpckg  TYPE abap_bool DEFAULT abap_true
-        it_r_package     TYPE rseloption
-        it_r_search_str  TYPE rseloption
-        it_r_obj_name    TYPE rseloption OPTIONAL
-      RETURNING
-        VALUE(rt_result) TYPE t_dev_obj.
+      IMPORTING iv_incl_subpckg  TYPE abap_bool  DEFAULT abap_true
+                it_r_package     TYPE rseloption
+                it_r_search_str  TYPE rseloption
+                it_r_obj_name    TYPE rseloption OPTIONAL
+      RETURNING VALUE(rt_result) TYPE t_dev_obj.
 
 ENDCLASS.
 
@@ -73,17 +72,17 @@ CLASS lcl_event_handler DEFINITION FINAL.
     CLASS-METHODS on_refresh
       FOR EVENT added_function OF cl_salv_events
       IMPORTING e_salv_function.
+
     CLASS-METHODS on_hotspot_click
       FOR EVENT link_click OF cl_salv_events_table
-      IMPORTING
-        row
-        column.
+      IMPORTING !row
+                !column.
+
     CLASS-METHODS on_settings_click.
 
   PRIVATE SECTION.
     CLASS-METHODS on_editor_link_click
-      IMPORTING
-        is_open_task TYPE lcl_application=>s_open_task.
+      IMPORTING is_open_task TYPE lcl_application=>s_open_task.
 
 ENDCLASS.
 
@@ -116,7 +115,7 @@ CLASS lcl_application IMPLEMENTATION.
 
   METHOD set_main_package.
 
-    CLEAR: mt_packages.
+    CLEAR mt_packages.
 
     IF mv_main_package CO ' _0'.
       " Determine parent package initially
@@ -131,8 +130,9 @@ CLASS lcl_application IMPLEMENTATION.
       mv_main_package = VALUE #( lt_packages[ parent = space ]-package OPTIONAL ).
     ENDIF.
 
-    SELECT SINGLE FROM tdevc
-                  JOIN tdevct ON tdevc~devclass = tdevct~devclass
+    SELECT SINGLE
+      FROM tdevc
+      JOIN tdevct ON tdevc~devclass = tdevct~devclass
       FIELDS @abap_true
       WHERE tdevc~devclass EQ @mv_main_package
       INTO @DATA(lv_exists).                           "#EC CI_BUFFJOIN
@@ -150,25 +150,26 @@ CLASS lcl_application IMPLEMENTATION.
 
     CHECK mv_main_package CN ' _0'.
 
-    mt_packages = CORRESPONDING #( zial_cl_devobj=>det_packages( iv_package        = mv_main_package
-                                                                 iv_hierarchy_mode = zial_cl_devobj=>mc_hierarchy_mode-children
-                                                                 iv_incl_package   = abap_true ) ).
+    mt_packages = CORRESPONDING #( zial_cl_devobj=>det_packages(
+                                       iv_package        = mv_main_package
+                                       iv_hierarchy_mode = zial_cl_devobj=>mc_hierarchy_mode-children
+                                       iv_incl_package   = abap_true ) ).
 
   ENDMETHOD.
 
 
   METHOD det_open_tasks.
 
-    DATA(lt_r_package)  = VALUE rseloption( FOR <s_package> IN mt_packages
-                                              ( sign = 'I' option = 'EQ' low = <s_package>-package ) ).
+    DATA(lt_r_package) = VALUE rseloption( FOR <s_package> IN mt_packages
+                                           ( sign = 'I' option = 'EQ' low = <s_package>-package ) ).
     " SCI only allows select option 'EQ', thus we have to change this to 'CP' with placeholders
     DATA(lt_r_search_str) = VALUE rseloption( FOR <v_todo_flag> IN mt_todo_flags
-                                                ( sign = 'I' option = 'CP' low = |*{ <v_todo_flag> }*| )
-                                                ( sign = 'E' option = 'NP' low = '*' ) ).
+                                              ( sign = 'I' option = 'CP' low = |*{ <v_todo_flag> }*| )
+                                              ( sign = 'E' option = 'NP' low = '*' ) ).
     DATA(lt_r_obj_name) = VALUE rseloption( ( sign = 'E' option = 'CP' low = |*{ mc_report_name }*| )
                                             ( sign = 'E' option = 'CP' low = |*{ mc_test_class_name }*| ) ).
 
-    CLEAR: mt_open_tasks.
+    CLEAR mt_open_tasks.
     mt_open_tasks = CORRESPONDING #( search( iv_incl_subpckg = abap_true
                                              it_r_package    = lt_r_package
                                              it_r_search_str = lt_r_search_str
@@ -196,7 +197,10 @@ CLASS lcl_application IMPLEMENTATION.
 
   METHOD prepare_alv.
 
-    CLEAR: mo_alv_table.
+    DATA lo_column TYPE REF TO cl_salv_column_table.
+    DATA lo_events TYPE REF TO cl_salv_events_table.
+
+    CLEAR mo_alv_table.
     cl_salv_table=>factory( EXPORTING r_container  = cl_gui_container=>default_screen
                             IMPORTING r_salv_table = mo_alv_table
                             CHANGING  t_table      = mt_open_tasks ).
@@ -215,7 +219,6 @@ CLASS lcl_application IMPLEMENTATION.
     DATA(lo_selection) = mo_alv_table->get_selections( ).
     lo_selection->set_selection_mode( if_salv_c_selection_mode=>cell ).
 
-    DATA: lo_column TYPE REF TO cl_salv_column_table.
     DATA(lo_columns) = mo_alv_table->get_columns( ).
 
     lo_column ?= lo_columns->get_column( 'EDITOR_LINK' ).
@@ -256,7 +259,6 @@ CLASS lcl_application IMPLEMENTATION.
 
     lo_columns->set_optimize( abap_true ).
 
-    DATA: lo_events TYPE REF TO cl_salv_events_table.
     lo_events = mo_alv_table->get_event( ).
     SET HANDLER lcl_event_handler=>on_refresh FOR lo_events.
     SET HANDLER lcl_event_handler=>on_hotspot_click FOR lo_events.
@@ -269,7 +271,7 @@ CLASS lcl_application IMPLEMENTATION.
   METHOD refresh.
 
     IF iv_main_package CN ' _0'.
-      lcl_application=>mv_main_package = iv_main_package.
+      mv_main_package = iv_main_package.
     ENDIF.
 
     prepare( ).
@@ -280,9 +282,9 @@ CLASS lcl_application IMPLEMENTATION.
 
   METHOD det_todo_flags.
 
-    DATA: lo_check_variant TYPE REF TO cl_ci_checkvariant.
+    DATA lo_check_variant TYPE REF TO cl_ci_checkvariant.
 
-    CLEAR: mt_todo_flags.
+    CLEAR mt_todo_flags.
 
     WHILE lo_check_variant IS INITIAL.
 
@@ -297,25 +299,18 @@ CLASS lcl_application IMPLEMENTATION.
           " Try to determine system-wide default check variant
           lv_uname = space.
 
-          cl_ci_checkvariant=>get_chkv_alter(
-            EXPORTING
-              p_checkvname_default = mc_dflt_check_variant
-            IMPORTING
-              p_checkvname_new     = lv_dflt_check_variant ).
+          cl_ci_checkvariant=>get_chkv_alter( EXPORTING p_checkvname_default = mc_dflt_check_variant
+                                              IMPORTING p_checkvname_new     = lv_dflt_check_variant ).
 
         WHEN OTHERS.
           MESSAGE TEXT-905 TYPE 'E'.
 
       ENDCASE.
 
-      cl_ci_checkvariant=>get_ref(
-        EXPORTING
-          p_user = lv_uname
-          p_name = lv_dflt_check_variant
-        RECEIVING
-          p_ref  = lo_check_variant
-        EXCEPTIONS
-          OTHERS = 0 ).
+      cl_ci_checkvariant=>get_ref( EXPORTING  p_user = lv_uname
+                                              p_name = lv_dflt_check_variant
+                                   RECEIVING  p_ref  = lo_check_variant
+                                   EXCEPTIONS OTHERS = 0 ).
 
     ENDWHILE.
 
@@ -326,13 +321,9 @@ CLASS lcl_application IMPLEMENTATION.
     IMPORT parameter = variant FROM DATABASE scichkv_pa(ar) ID lv_check_variant_id.
     variant = FILTER #( variant WHERE testname EQ CONV #( mc_test_class_name ) ).
 
-    cl_ci_tests=>get_list(
-      EXPORTING
-        p_variant = variant
-      RECEIVING
-        p_result  = DATA(lo_test_ref)
-      EXCEPTIONS
-        OTHERS    = 0 ).
+    cl_ci_tests=>get_list( EXPORTING  p_variant = variant
+                           RECEIVING  p_result  = DATA(lo_test_ref)
+                           EXCEPTIONS OTHERS    = 0 ).
 
     DATA(lt_list) = lo_test_ref->give_list( ).
     ASSIGN lt_list[ 1 ] TO FIELD-SYMBOL(<lo_test_class>).
@@ -352,8 +343,6 @@ CLASS lcl_application IMPLEMENTATION.
 
   METHOD scan.
 
-    DATA: lt_source_code TYPE tchar255.
-
     LOOP AT it_dev_objects ASSIGNING FIELD-SYMBOL(<ls_dev_object>).
 
       cl_progress_indicator=>progress_indicate( i_text               = |\|&1% - { TEXT-115 } &4 (&2/&3)\||
@@ -362,7 +351,7 @@ CLASS lcl_application IMPLEMENTATION.
                                                 i_msgv4              = <ls_dev_object>-obj_name
                                                 i_output_immediately = abap_true ).
 
-      CLEAR: lt_source_code.
+      DATA(lt_source_code) = VALUE tchar255( ).
       READ REPORT <ls_dev_object>-obj_name INTO lt_source_code STATE 'I'.
       IF sy-subrc NE 0.
         READ REPORT <ls_dev_object>-obj_name INTO lt_source_code.
@@ -416,9 +405,9 @@ CLASS lcl_application IMPLEMENTATION.
       LOOP AT it_r_package ASSIGNING FIELD-SYMBOL(<ls_r_package>).
         DATA(lt_packages) = zial_cl_devobj=>det_packages( iv_package = CONV #( <ls_r_package>-low ) ).
         APPEND LINES OF VALUE rseloption( FOR <s_package> IN lt_packages
-                                            ( sign   = 'I'
-                                              option = 'EQ'
-                                              low    = <s_package>-package ) ) TO lt_r_package.
+                                          ( sign   = 'I'
+                                            option = 'EQ'
+                                            low    = <s_package>-package ) ) TO lt_r_package.
       ENDLOOP.
     ENDIF.
 
@@ -444,7 +433,7 @@ CLASS lcl_event_handler IMPLEMENTATION.
 
   METHOD on_refresh.
 
-    lcl_application=>refresh(  ).
+    lcl_application=>refresh( ).
 
   ENDMETHOD.
 
@@ -454,11 +443,9 @@ CLASS lcl_event_handler IMPLEMENTATION.
     ASSIGN lcl_application=>mt_open_tasks[ row ] TO FIELD-SYMBOL(<ls_open_task>).
     CHECK <ls_open_task> IS ASSIGNED.
 
-    CASE column.
-      WHEN 'EDITOR_LINK'.
-        on_editor_link_click( <ls_open_task> ).
-
-    ENDCASE.
+    IF column EQ 'EDITOR_LINK'.
+      on_editor_link_click( <ls_open_task> ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -466,34 +453,29 @@ CLASS lcl_event_handler IMPLEMENTATION.
   METHOD on_editor_link_click.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = is_open_task-obj_name
-        object_type = 'REPS'
-        position    = is_open_task-line
-      EXCEPTIONS
-        OTHERS      = 0.
+      EXPORTING  operation   = 'SHOW'
+                 object_name = is_open_task-obj_name
+                 object_type = 'REPS'
+                 position    = is_open_task-line
+      EXCEPTIONS OTHERS      = 0.
 
   ENDMETHOD.
 
 
   METHOD on_settings_click.
 
-    TYPES: tt_sval TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
+    TYPES tt_sval TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
 
     DATA(lt_fields) = VALUE tt_sval( ( tabname   = 'TADIR'
                                        fieldname = 'DEVCLASS'
                                        value     = lcl_application=>mv_main_package ) ).
 
     CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        popup_title  = TEXT-010
-        start_column = '2'
-        start_row    = '2'
-      TABLES
-        fields       = lt_fields
-      EXCEPTIONS
-        OTHERS       = 0.
+      EXPORTING  popup_title  = TEXT-010
+                 start_column = '2'
+                 start_row    = '2'
+      TABLES     fields       = lt_fields
+      EXCEPTIONS OTHERS       = 0.
 
     ASSIGN lt_fields[ 1 ] TO FIELD-SYMBOL(<ls_field>).
     CHECK <ls_field> IS ASSIGNED.

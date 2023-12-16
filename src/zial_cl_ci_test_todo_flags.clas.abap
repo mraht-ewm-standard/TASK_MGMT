@@ -90,7 +90,7 @@ CLASS zial_cl_ci_test_todo_flags IMPLEMENTATION.
       CHECK get( ) EQ 'X'.
     ENDIF.
 
-    CHECK ref_scan->subrc = 0.
+    CHECK ref_scan->subrc EQ 0.
 
     " -- loop at all tokens
     LOOP AT ref_scan->statements INTO statement_wa.
