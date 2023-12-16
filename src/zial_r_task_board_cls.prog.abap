@@ -14,13 +14,13 @@ CLASS lcl_application DEFINITION FINAL.
              obj_name      TYPE sobj_name,
              devclass      TYPE devclass,
            END OF s_dev_obj,
-           t_dev_obj TYPE TABLE OF s_dev_obj WITH KEY obj_name.
+           tt_dev_obj TYPE TABLE OF s_dev_obj WITH KEY obj_name.
 
     TYPES: BEGIN OF s_open_task,
              editor_link TYPE icon_d.
              INCLUDE     TYPE s_dev_obj.
     TYPES: END OF s_open_task,
-           t_open_task TYPE TABLE OF s_open_task.
+           tt_open_task TYPE TABLE OF s_open_task.
 
     CONSTANTS mc_report_name        TYPE progname VALUE 'ZIAL_R_TASK_BOARD'.
     CONSTANTS mc_test_class_name    TYPE clasname VALUE 'ZIAL_CL_CI_TEST_TODO_FLAGS'.
@@ -30,7 +30,7 @@ CLASS lcl_application DEFINITION FINAL.
     CLASS-DATA mo_alv_table    TYPE REF TO cl_salv_table.
     CLASS-DATA mv_main_package TYPE devclass.
     CLASS-DATA mt_packages     TYPE zial_tt_package.
-    CLASS-DATA mt_open_tasks   TYPE t_open_task.
+    CLASS-DATA mt_open_tasks   TYPE tt_open_task.
 
     CLASS-METHODS execute.
 
@@ -54,14 +54,14 @@ CLASS lcl_application DEFINITION FINAL.
     CLASS-METHODS scan
       IMPORTING it_r_search_str  TYPE rseloption
                 it_dev_objects   TYPE zial_tt_tadir
-      RETURNING VALUE(rt_result) TYPE t_dev_obj.
+      RETURNING VALUE(rt_result) TYPE tt_dev_obj.
 
     CLASS-METHODS search
       IMPORTING iv_incl_subpckg  TYPE abap_bool  DEFAULT abap_true
                 it_r_package     TYPE rseloption
                 it_r_search_str  TYPE rseloption
                 it_r_obj_name    TYPE rseloption OPTIONAL
-      RETURNING VALUE(rt_result) TYPE t_dev_obj.
+      RETURNING VALUE(rt_result) TYPE tt_dev_obj.
 
 ENDCLASS.
 
@@ -132,7 +132,7 @@ CLASS lcl_application IMPLEMENTATION.
 
     SELECT SINGLE
       FROM tdevc
-      JOIN tdevct ON tdevc~devclass = tdevct~devclass
+      JOIN tdevct ON tdevc~devclass EQ tdevct~devclass
       FIELDS @abap_true
       WHERE tdevc~devclass EQ @mv_main_package
       INTO @DATA(lv_exists).                           "#EC CI_BUFFJOIN
@@ -317,11 +317,11 @@ CLASS lcl_application IMPLEMENTATION.
     DATA(lv_check_variant_id) = CONV sci_cvkey( |{ lo_check_variant->chkvinf-checkvid }_| &&
                                                 |{ lo_check_variant->chkvinf-ciuser }| ).
 
-    DATA(variant) = VALUE sci_tstvar( ).
-    IMPORT parameter = variant FROM DATABASE scichkv_pa(ar) ID lv_check_variant_id.
-    variant = FILTER #( variant WHERE testname EQ CONV #( mc_test_class_name ) ).
+    DATA(lv_variant) = VALUE sci_tstvar( ).
+    IMPORT parameter = lv_variant FROM DATABASE scichkv_pa(ar) ID lv_check_variant_id.
+    lv_variant = FILTER #( lv_variant WHERE testname EQ CONV #( mc_test_class_name ) ).
 
-    cl_ci_tests=>get_list( EXPORTING  p_variant = variant
+    cl_ci_tests=>get_list( EXPORTING  p_variant = lv_variant
                            RECEIVING  p_result  = DATA(lo_test_ref)
                            EXCEPTIONS OTHERS    = 0 ).
 
