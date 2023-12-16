@@ -12,7 +12,8 @@
     ],
     "global": {
       "exclude": [
-        "^.*apack"
+        "apack",
+        "sktd"
       ],
       "files": "/{test/src,src}/**/*.*",
       "skipGeneratedFunctionGroups": true,
@@ -63,13 +64,13 @@
       "check_text_elements": true,
       "check_transformation_exists": true,
       "class_attribute_names": {
-        "constants": "^MC_.*$",
         "exclude": [
           "/json/"
         ],
         "ignoreExceptions": true,
         "ignoreInterfaces": false,
         "ignoreLocal": false,
+        "constants": "^MC_.*$",
         "instance": "^M._.*$",
         "statics": "^M._.*$"
       },
@@ -414,7 +415,7 @@
         "exclude": [
           "/json/"
         ],
-        "pattern": "^(R|V|S|TT)_.+$"
+        "pattern": "^(R|DE|S|TT)_.+$"
       },
       "uncaught_exception": true,
       "unknown_types": false,
