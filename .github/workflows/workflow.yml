@@ -1,0 +1,30 @@
+name: "main"
+on: 
+    push:
+        branches:
+            - '*'
+    workflow_dispatch:
+        inputs:
+            MANUAL_COMMIT_REF:
+                description: "The SHA of the commit to get the diff for"
+                required: true
+            MANUAL_BASE_REF:
+                description: "By default, the commit entered above is compared to the one directly before it; to go back further, enter an earlier SHA here"
+                required: false
+jobs:
+    build:
+        runs-on: "ubuntu-latest"
+        steps:
+            - uses: "actions/checkout@v3"
+            - name: "todo-to-issue"
+              uses: "alstr/todo-to-issue-action@v4"
+              with:
+                  CLOSE_ISSUES: true
+                  AUTO_P: true
+                  AUTO_ASSIGN: true
+                  IDENTIFIERS: '[{"name": "TODO", "labels": ["todo"]}, {"name": "NEW", "labels": ["new"]}, {"name": "FIX", "labels": ["bug"]}, {"name": "OPT", "labels": ["opt"]}]'
+            - name: "abaplint"
+              uses: "abaplint/actions-abaplint@main"
+              if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
